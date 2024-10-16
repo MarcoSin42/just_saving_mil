@@ -52,23 +52,87 @@ example (a b c : Nat) (h : a * b = a * c) (h' : a ≠ 0) : b = c :=
 example {m n : ℕ} (coprime_mn : m.Coprime n) : m ^ 2 ≠ 2 * n ^ 2 := by
   intro sqr_eq
   have : 2 ∣ m := by
-    sorry
+    apply even_of_even_sqr
+    rw [sqr_eq]
+    apply dvd_mul_right
+
   obtain ⟨k, meq⟩ := dvd_iff_exists_eq_mul_left.mp this
-  have : 2 * (2 * k ^ 2) = 2 * n ^ 2 := by
+  have  h₁ : 2 * (2 * k ^ 2) = 2 * n ^ 2 := by
     rw [← sqr_eq, meq]
     ring
-  have : 2 * k ^ 2 = n ^ 2 :=
-    sorry
-  have : 2 ∣ n := by
-    sorry
-  have : 2 ∣ m.gcd n := by
-    sorry
+  have h₂ : 2 * k ^ 2 = n ^ 2 := by
+    have two_neq_zero : 2 ≠ 0 := by
+      exact Ne.symm (Nat.zero_ne_add_one 1)
+    apply (mul_right_inj' two_neq_zero).mp
+    exact h₁
+  have  h₃: 2 ∣ n := by
+    apply even_of_even_sqr
+    rw [←h₂]
+    apply dvd_mul_right
+
+  have h₄ : 2 ∣ m.gcd n := by
+    apply Nat.dvd_gcd
+    exact this
+    exact h₃
+
   have : 2 ∣ 1 := by
-    sorry
+    convert h₄
+    apply symm
+    exact coprime_mn
+
   norm_num at this
 
 example {m n p : ℕ} (coprime_mn : m.Coprime n) (prime_p : p.Prime) : m ^ 2 ≠ p * n ^ 2 := by
-  sorry
+  -- Proof by contradiction
+  intro sqr_eq
+
+  have p_dvd_m : p ∣ m := by
+    apply prime_p.dvd_of_dvd_pow
+    rw [sqr_eq]
+    apply dvd_mul_right
+
+  -- ∃ k ∈ ℕ, s.t. m = k * p
+  -- This follows from the fact that m is divisible by p, and hence is some multiple of p
+  obtain ⟨k, meq⟩ := by
+    apply dvd_iff_exists_eq_mul_left.mp p_dvd_m
+
+  have h₁ : p * (p * k ^ 2) = p * n ^ 2 := by
+    rw [← sqr_eq]
+    rw [meq]
+    ring
+  have h₂ : p * k ^ 2 = n ^ 2 := by
+    have p_neq_zero: p ≠ 0 := by
+      exact Nat.Prime.ne_zero prime_p
+    exact (Nat.mul_right_inj p_neq_zero).mp h₁
+  have p_dvd_n : p ∣ n := by
+    apply prime_p.dvd_of_dvd_pow
+    rw [←h₂]
+    apply dvd_mul_right
+
+  have p_dvd_gcd_mn : p ∣ Nat.gcd m n := by
+    apply Nat.dvd_gcd
+    exact p_dvd_m
+    exact p_dvd_n
+
+  /-
+  Show that p ∣ 1 follows from the fact that
+  1. p is divisor of the gcd of m and n
+  2. Since m and n are coprime, this must imply that p is a divisor of 1, by definition of gcd of two coprime numbers
+  -/
+  have p_dvd_one : p ∣ 1 := by
+    convert p_dvd_gcd_mn
+    symm
+    exact coprime_mn
+
+  -- Finally, we show a contradiction by showing that given our premises we have that 2 ≤ 1 (which is obviously false)
+  have two_lt_one : 2 ≤  1 := by
+    apply prime_p.two_le.trans
+    exact (Nat.Prime.dvd_factorial prime_p).mp p_dvd_one
+
+  norm_num at two_lt_one
+
+
+
 #check Nat.primeFactorsList
 #check Nat.prime_of_mem_primeFactorsList
 #check Nat.prod_primeFactorsList
@@ -117,4 +181,3 @@ example {m n k r : ℕ} (nnz : n ≠ 0) (pow_eq : m ^ k = r * n ^ k) {p : ℕ} :
   sorry
 
 #check multiplicity
-
